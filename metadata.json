@@ -1,0 +1,5 @@
+{
+  "name": "NEU Library Visitor Log",
+  "description": "A visitor log application for the NEU Library with Google Login, visitor forms, and admin statistics.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (request.auth.token.email == "lordronkennethluis.cortez@neu.edu.ph" && request.auth.token.email_verified == true) ||
+        (request.auth.token.email == "jcesperanza@neu.edu.ph" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+             request.resource.data[field].size() >= minLen &&
+             request.resource.data[field].size() <= maxLen;
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == resource.data.uid;
+    }
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'role', 'createdAt', 'timestamp']) &&
+             data.uid is string && data.uid.size() >= 20 && data.uid.size() <= 128 &&
+             isValidEmail(data.email) && data.email.size() <= 100 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+             data.role in ['user', 'admin'] &&
+             isValidDateString(data.createdAt) &&
+             data.timestamp == request.time;
+    }
+
+    function isValidLog(data) {
+      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'reason', 'college', 'isEmployee', 'timestamp']) &&
+             data.uid is string && data.uid.size() >= 20 && data.uid.size() <= 128 &&
+             isValidEmail(data.email) && data.email.size() <= 100 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+             data.reason in ['Research', 'Study', 'Relax', 'Other'] &&
+             data.college is string && data.college.size() >= 1 && data.college.size() <= 100 &&
+             data.isEmployee is bool &&
+             data.timestamp == request.time;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
+                      (request.resource.data.role == 'user' || isAdmin()) &&
+                      uidUnchanged();
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
+                      (request.resource.data.role == resource.data.role || isAdmin()) &&
+                      uidNotModified() &&
+                      request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    match /logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && 
+                      request.resource.data.uid == request.auth.uid && 
+                      isValidLog(request.resource.data);
+      allow delete, update: if isAdmin();
+    }
+  }
+}

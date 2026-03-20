@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user profile information and roles.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Unique identifier for the user (20-128 chars)." },
+        "email": { "type": "string", "format": "email", "description": "User's NEU email address (< 100 chars)." },
+        "displayName": { "type": "string", "description": "User's full name (1-100 chars)." },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "User's access level." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the profile was created (ISO 8601)." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Server timestamp of the record." }
+      },
+      "required": ["uid", "email", "displayName", "role", "createdAt", "timestamp"]
+    },
+    "VisitorLog": {
+      "title": "Visitor Log",
+      "description": "Stores individual library visit entries.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "UID of the visitor (20-128 chars)." },
+        "email": { "type": "string", "format": "email", "description": "Email of the visitor (< 100 chars)." },
+        "displayName": { "type": "string", "description": "Name of the visitor (1-100 chars)." },
+        "reason": { "type": "string", "enum": ["Research", "Study", "Relax", "Other"], "description": "Reason for visit." },
+        "college": { "type": "string", "description": "Visitor's college (1-100 chars)." },
+        "isEmployee": { "type": "boolean", "description": "Whether the visitor is an employee." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Server timestamp of the visit." }
+      },
+      "required": ["uid", "email", "displayName", "reason", "college", "isEmployee", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Collection of user profiles."
+    },
+    "/logs/{logId}": {
+      "schema": "VisitorLog",
+      "description": "Collection of visitor logs."
+    }
+  }
+}
+
+
